@@ -36,7 +36,7 @@ The pipeline stages in Jenkins include:
 7. **Push to Docker Hub**: Pushes the Docker image to Docker Hub.
 
 8. **Kubernetes Deployment with ArgoCD**:
-  * **Manifest Repository Update**: After building and scanning the Docker image, the pipeline updates a separate [Kubernetes manifest](https://github.com/rrrrrrrjk/kubernetes-manifest) repository to reflect the new image tag. This repository contains YAML configuration files defining the Kubernetes resources (e.g., Deployments, Services) needed to run the application.
-  * **ArgoCD Deployment**: ArgoCD monitors the manifest repository for changes. Once it detects the updated image tag, it automatically deploys the new version to the Kubernetes cluster. ArgoCD ensures a continuous deployment (CD) workflow, providing real-time synchronization and rollback options if needed.
+   * **Manifest Repository Update**: After building and scanning the Docker image, the pipeline updates a separate [Kubernetes manifest](https://github.com/rrrrrrrjk/kubernetes-manifest) repository to reflect the new image tag. This repository contains YAML configuration files defining the Kubernetes resources (e.g., Deployments, Services) needed to run the application.
+   * **ArgoCD Deployment**: ArgoCD monitors the manifest repository for changes. Once it detects the updated image tag, it automatically deploys the new version to the Kubernetes cluster. ArgoCD ensures a continuous deployment (CD) workflow, providing real-time synchronization and rollback options if needed.
 
 9. **Clean Up**: Removes the Docker image from Jenkins to save space.
