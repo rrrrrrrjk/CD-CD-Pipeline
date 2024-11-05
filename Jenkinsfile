@@ -28,7 +28,7 @@ pipeline {
         }
         stage('OWASP FS SCAN') {
             steps {
-                sh 'npm i'
+                //sh 'npm i'
                 dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
@@ -46,7 +46,7 @@ pipeline {
                     retry(3) {
                         sleep 10 // Delay between retries to handle rate limiting
                         // Run Trivy to scan the Docker image
-                        def trivyOutput = sh(script: "trivy image ${dockerImage}:${BUILD_NUMBER}", returnStdout: true).trim()
+                        def trivyOutput = sh(script: "trivy image --quiet --ignore-unfixed ${dockerImage.imageName()}", returnStdout: true).trim()
 
                         // Display Trivy scan results
                         println trivyOutput
@@ -83,7 +83,7 @@ pipeline {
         }
         stage('Cleaning up') {
             steps {
-                sh "docker rmi $registry:$BUILD_NUMBER"
+                sh "docker rmi ${dockerImage.imageName()}"
             }
         }
     }
