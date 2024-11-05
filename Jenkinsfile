@@ -35,14 +35,14 @@ pipeline {
         stage('Building Image') {
             steps {
                 script {
-                    dockerImage = docker.build registry + ":latest"
+                    dockerImage = docker.build registry + ":$BUILD_NUMBER"
                 }
             }
         }
         stage('TRIVY FS SCAN') {
             steps {
                 // Run Trivy to scan the Docker image
-                def trivyOutput = sh(script: "trivy image $dockerImage:latest", returnStdout: true).trim()
+                def trivyOutput = sh(script: "trivy image $dockerImage:$BUILD_NUMBER", returnStdout: true).trim()
 
                 // Display Trivy scan results
                 println trivyOutput
@@ -67,10 +67,9 @@ pipeline {
                 }
             }
         }
-        stage('Deploying React.js container to Kubernetes') {
-            steps {
-                
-            }
+        stage('Trigger ManifestUpdate') {
+            echo "triggering update-manifestjob"
+            build job: 'update-manifest', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
         }
         stage('Cleaning up') {
             steps {
