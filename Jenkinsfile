@@ -1,10 +1,13 @@
 pipeline {
+    agent any
     environment {
         registry = "rywj/jenkins-react"
         registryCredential = 'docker-token'
         dockerImage = ''
     }
-    agent any
+    tools {
+        nodejs 'node'
+    }
     stages{
         stage('Clear work station') {
             steps {
@@ -16,21 +19,30 @@ pipeline {
                 git branch: 'main', credentialsId: 'github-token', url: 'https://github.com/rrrrrrrjk/jenkins-react.git'
             }
         }
+        stage('Install Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
         stage('Sonar Quality Gate') {
             steps {
                 script {
-                    /*docker.image('sonarsource/sonar-scanner-cli').inside("--network Jenkins -v ${pwd()}:/usr/src") {
+                    docker.image('sonarsource/sonar-scanner-cli').inside("--network Jenkins -v ${pwd()}:/usr/src") {
                         sh 'sonar-scanner'
-                    }*/
-                    sh 'docker run --rm --network Jenkins -v "C:/cicd pipelines/jenkins_home/workspace/react-jenkins:/usr/src" sonarsource/sonar-scanner-cli sonar-scanner'
+                    }
+                    //sh 'docker run --rm --network Jenkins -v "C:/cicd pipelines/jenkins_home/workspace/react-jenkins:/usr/src" sonarsource/sonar-scanner-cli sonar-scanner'
                 }
             }
         }
         stage('OWASP FS SCAN') {
             steps {
-                //sh 'npm i'
                 dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage('TRIVY FS SCAN') {
+            steps {
+                sh "trivy fs . > trivyfs.txt"
             }
         }
         stage('Building Image') {
