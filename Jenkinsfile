@@ -22,7 +22,7 @@ pipeline {
                     /*docker.image('sonarsource/sonar-scanner-cli').inside("--network Jenkins -v ${pwd()}:/usr/src") {
                         sh 'sonar-scanner'
                     }*/
-                    sh 'docker run --rm --network Jenkins -v "C:/cicd pipelines/jenkins_home/workspace/image-project:/usr/src" sonarsource/sonar-scanner-cli sonar-scanner'
+                    sh 'docker run --rm --network Jenkins -v "C:/cicd pipelines/jenkins_home/workspace/react-jenkins:/usr/src" sonarsource/sonar-scanner-cli sonar-scanner'
                 }
             }
         }
