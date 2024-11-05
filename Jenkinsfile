@@ -77,7 +77,7 @@ pipeline {
             steps {
                 script {
                     echo "triggering update-manifest job"
-                    build job: 'update-manifest', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
+                    build job: 'update-manifest'
                 }
             }
         }
