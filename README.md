@@ -1,5 +1,5 @@
 # CI/CD Pipeline for Jenkins with Kubernetes Deployment
-### This repository contains a CI/CD pipeline setup using Jenkins, Docker, Kubernetes, SonarQube, Trivy, OWASP Dependency-Check, and Grafana. The pipeline automates code quality checks, security scans, Docker image builds, and Kubernetes deployments, while Grafana provides monitoring capabilities for Jenkins.
+ **This repository contains a CI/CD pipeline setup using Jenkins, Docker, Kubernetes, SonarQube, Trivy, OWASP Dependency-Check, and Grafana. The pipeline automates code quality checks, security scans, Docker image builds, and Kubernetes deployments, while Grafana provides monitoring capabilities for Jenkins.**
 
 ## Prerequisites
 * **Docker and Docker Compose**: Installed on your server or local machine.
