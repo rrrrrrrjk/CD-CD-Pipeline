@@ -1,0 +1,21 @@
+# Start from the official Jenkins image with JDK 21
+FROM jenkins/jenkins:lts-jdk17
+
+# Switch to root user to install additional packages
+USER root
+
+# Update package lists and install required utilities
+RUN apt update && apt install -y curl inetutils-telnet net-tools sshpass
+# - curl: used to download files from the internet, useful for installing additional tools
+# - inetutils-telnet: provides the telnet client, useful for network testing and diagnostics
+# - net-tools: includes networking utilities like ifconfig, helpful for network debugging
+# - sshpass: allows SSH with password, useful for scripting remote commands without interactive password entry
+
+# Install Docker within the Jenkins container
+RUN curl -fsSL https://get.docker.com | sh
+# - This line downloads and runs the official Docker installation script, making Docker CLI available inside the container
+
+# Install Trivy, a security scanner for Docker images
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+# - This line downloads and installs the Trivy binary into /usr/local/bin, making it available to Jenkins
+

@@ -1,0 +1,126 @@
+services:
+  jenkins:
+    image: jenkins:1.0
+    container_name: jenkins
+    build:
+      context: ./Jenkins
+    restart: always
+    privileged: true
+    ports:
+      - 8080:8080
+      - 50000:50000
+    environment:
+      TZ: Asia/Bangkok
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      #- /usr/bin/docker:/usr/bin/docker
+      - ./jenkins_home:/var/jenkins_home
+    networks:
+      - jenkins_network
+  sonarqube:
+    image: sonarqube:10-community
+    hostname: sonarqube
+    container_name: sonarqube
+    restart: unless-stopped
+    depends_on:
+      - sonarqube-db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    volumes:
+      - ./sonar_data/sonarqube_data:/opt/sonarqube/data
+      - ./sonar_data/sonarqube_extensions:/opt/sonarqube/extensions
+      - ./sonar_data/sonarqube_logs:/opt/sonarqube/logs
+    ports:
+      - "9000:9000"
+    networks:
+      - jenkins_network
+  
+  grafana:
+    build:
+      context: ./grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - jenkins_network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+    networks:
+      - jenkins_network
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - 9100:9100
+    networks:
+      - jenkins_network
+
+  sonarqube-db:
+    image: postgres:15.2-alpine3.17
+    hostname: postgresql
+    container_name: postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - ./data_psql/postgresql:/var/lib/postgresql
+      - ./data_psql/postgresql_data:/var/lib/postgresql/data
+      - ./data_psql/backup:/var/lib/postgresql/backup
+    networks:
+      - jenkins_network
+  openssh-server:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: openssh-server
+    hostname: openssh-server 
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - SUDO_ACCESS=false
+      - TZ=Asia/Bangkok
+      - PASSWORD_ACCESS=true
+      - USER_PASSWORD=password
+      - USER_NAME=linuxserver
+    volumes:
+      - ./openssh-server/config:/config
+      - ./sonar_data:/backup/sonar/sonar_data
+      - ./data_psql/backup:/backup/sonar/data_psql
+      - ./jenkins_home:/backup/jenkins/jenkins_home
+    ports:
+      - 2222:2222
+    restart: unless-stopped
+    networks:
+      - jenkins_network
+networks:
+  jenkins_network:
+    name: Jenkins
+    driver: bridge
+
+volumes:
+  grafana-storage: {}
+  prom_data:
