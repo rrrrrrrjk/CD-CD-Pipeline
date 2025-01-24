@@ -1,22 +1,26 @@
 pipeline {
     agent any
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
+        string(name: 'DOCKER_REGISTRY', defaultValue: 'rywj/jenkins-react', description: 'Docker registry')
+    }
     environment {
-        registry = "rywj/jenkins-react"
+        registry = "${DOCKER_REGISTRY}"
         registryCredential = 'docker-token'
         dockerImage = ''
     }
     tools {
-        nodejs 'node'
+        nodejs 'nodejs' // Ensure 'nodejs' is the correct tool name in Jenkins
     }
-    stages{
-        stage('Clear work station') {
+    stages {
+        stage('Clear Workstation') {
             steps {
                 cleanWs()
             }
         }
         stage('SCM') {
             steps {
-                git branch: 'main', credentialsId: 'github-token', url: 'https://github.com/rrrrrrrjk/jenkins-react.git'
+                git branch: "${BRANCH_NAME}", credentialsId: 'github-token', url: 'https://github.com/rrrrrrrjk/jenkins-react.git'
             }
         }
         stage('Install Dependencies') {
@@ -30,72 +34,73 @@ pipeline {
                     docker.image('sonarsource/sonar-scanner-cli').inside("--network Jenkins -v ${pwd()}:/usr/src") {
                         sh 'sonar-scanner'
                     }
-                    //sh 'docker run --rm --network Jenkins -v "C:/cicd pipelines/jenkins_home/workspace/react-jenkins:/usr/src" sonarsource/sonar-scanner-cli sonar-scanner'
+                }
+            }
+            post {
+                failure {
+                    error "SonarQube Quality Gate failed."
                 }
             }
         }
-        stage('OWASP FS SCAN') {
+        stage('OWASP Dependency Check') {
             steps {
                 dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
-        stage('TRIVY FS SCAN') {
+        stage('Trivy Security Scans') {
             steps {
-                sh "trivy fs . > trivyfs.txt"
+                script {
+                    // Filesystem Scan
+                    echo "Running Trivy filesystem scan..."
+                    sh "trivy fs . > trivyfs.txt"
+
+                    // Docker Image Scan
+                    echo "Running Trivy image scan..."
+                    def trivyOutput = sh(script: "trivy image --quiet --ignore-unfixed ${dockerImage.imageName()}", returnStdout: true).trim()
+
+                    // Display scan results
+                    println trivyOutput
+
+                    // Fail if vulnerabilities are found
+                    if (!trivyOutput.contains("Total: 0")) {
+                        error "Vulnerabilities found in the Docker image."
+                    }
+                }
             }
         }
-        stage('Building Image') {
+        stage('Building Docker Image') {
             steps {
                 script {
                     dockerImage = docker.build registry + ":$BUILD_NUMBER"
                 }
             }
         }
-        stage('TRIVY FS SCAN') {
-            steps {
-                script {
-                    retry(3) {
-                        sleep 10 // Delay between retries to handle rate limiting
-                        // Run Trivy to scan the Docker image
-                        def trivyOutput = sh(script: "trivy image --quiet --ignore-unfixed ${dockerImage.imageName()}", returnStdout: true).trim()
-
-                        // Display Trivy scan results
-                        println trivyOutput
-
-                        // Check if vulnerabilities were found
-                        if (trivyOutput.contains("Total: 0")) {
-                            echo "No vulnerabilities found in the Docker image."
-                        } else {
-                            echo "Vulnerabilities found in the Docker image."
-                            // You can take further actions here based on your requirements
-                            // For example, failing the build if vulnerabilities are found
-                            // error "Vulnerabilities found in the Docker image."
-                        }
-                    }
-                }
-            }
-        }
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry( '', registryCredential) {
+                    docker.withRegistry('', registryCredential) {
                         dockerImage.push()
                     }
                 }
             }
         }
-        stage('Trigger ManifestUpdate') {
+        stage('Trigger Manifest Update') {
             steps {
                 script {
-                    echo "triggering update-manifest job"
+                    echo "Triggering update-manifest job..."
                     build job: 'update-manifest'
                 }
             }
         }
-        stage('Cleaning up') {
+        stage('Cleaning Up') {
             steps {
                 sh "docker rmi ${dockerImage.imageName()}"
+            }
+        }
+        stage('Archive Reports') {
+            steps {
+                archiveArtifacts artifacts: 'trivyfs.txt, dependency-check-report.xml', allowEmptyArchive: true
             }
         }
     }
