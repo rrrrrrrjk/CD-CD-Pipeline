@@ -10,7 +10,7 @@ pipeline {
         dockerImage = ''
     }
     tools {
-        nodejs 'nodejs' // Ensure 'nodejs' is the correct tool name in Jenkins
+        nodejs 'nodejs' 
     }
     stages {
         stage('Clear Workstation') {
